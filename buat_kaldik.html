@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalender Pendidikan</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 20px;
+    }
+    .day-header, .day-box {
+      border: 1px solid #ccc;
+      padding: 5px;
+      min-height: 60px;
+      text-align: center;
+    }
+    .day-header {
+      font-weight: bold;
+      background-color: #4caf50;
+      color: white;
+    }
+    .day-box.aktif {
+      background-color: #d0f0d0;
+    }
+    .day-box.libur {
+      background-color: #f8d0d0;
+    }
+    .day-box.kegiatan {
+      background-color: #d0e0f8;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hidden { display: none; }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      width: 300px;
+    }
+    .kegiatan-list {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kalender Pendidikan</h1>
+  <div class="controls">
+    <button onclick="prevMonth()">&laquo; Bulan Sebelumnya</button>
+    <span id="monthYear"></span>
+    <button onclick="nextMonth()">Bulan Berikutnya &raquo;</button>
+    <select id="yearSelect" onchange="changeYear()"></select>
+  </div>
+  <div id="calendar" class="calendar"></div>
+  <div class="kegiatan-list">
+    <h3>Daftar Kegiatan Bulan Ini</h3>
+    <ul id="kegiatanList"></ul>
+  </div>
+  <div style="margin: 20px 0;">
+  <label for="bulanSelect">Pilih Bulan untuk Diekspor:</label><br>
+  <select id="bulanSelect" multiple size="6" style="width:200px;">
+    <option value="0">Januari</option>
+    <option value="1">Februari</option>
+    <option value="2">Maret</option>
+    <option value="3">April</option>
+    <option value="4">Mei</option>
+    <option value="5">Juni</option>
+    <option value="6">Juli</option>
+    <option value="7">Agustus</option>
+    <option value="8">September</option>
+    <option value="9">Oktober</option>
+    <option value="10">November</option>
+    <option value="11">Desember</option>
+  </select>
+</div>
+  <button onclick="exportToWord()">Simpan ke Word</button>
+  <button onclick="resetKalender()" style="margin-left:10px;background-color:#f55;color:white;padding:5px 10px;border:none;border-radius:4px;">Reset Data Kalender</button>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="modal-title">Edit Keterangan</h3>
+      <p id="selected-date"></p>
+      <select id="keterangan">
+        <option value="aktif">Hari Aktif</option>
+        <option value="libur">Hari Libur</option>
+        <option value="kegiatan">Kegiatan Sekolah</option>
+      </select>
+      <input type="text" id="catatan" placeholder="Catatan tambahan...">
+      <div class="modal-actions">
+        <button onclick="saveKeterangan()">Simpan</button>
+        <button onclick="hapusKeterangan()">Hapus</button>
+        <button onclick="closeModal()">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/docx@8.0.2/build/index.js"></script>
+  <script>
+    const calendarEl = document.getElementById("calendar");
+    const monthYearEl = document.getElementById("monthYear");
+    const kegiatanListEl = document.getElementById("kegiatanList");
+    const yearSelectEl = document.getElementById("yearSelect");
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedYear = currentYear;
+    let selectedDate = null;
+    let kalenderData = JSON.parse(localStorage.getItem("kalenderData") || '{}');
+
+    for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      if (y === currentYear) opt.selected = true;
+      yearSelectEl.appendChild(opt);
+    }
+
+    function renderCalendar(month, year) {
+      calendarEl.innerHTML = "";
+      kegiatanListEl.innerHTML = "";
+
+      const days = ["MING", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
+      days.forEach(d => {
+        const header = document.createElement("div");
+        header.className = "day-header";
+        header.textContent = d;
+        calendarEl.appendChild(header);
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        calendarEl.appendChild(empty);
+      }
+
+      const kegiatanBulanIni = [];
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const box = document.createElement("div");
+        box.className = "day-box";
+        box.textContent = d;
+        const dateKey = `${year}-${month + 1}-${d}`;
+        const data = kalenderData[dateKey];
+        if (data) {
+          box.classList.add(data.keterangan);
+          kegiatanBulanIni.push({ tanggal: d, ...data });
+        }
+        box.onclick = () => openModal(dateKey);
+        calendarEl.appendChild(box);
+      }
+
+      kegiatanBulanIni.sort((a, b) => a.tanggal - b.tanggal).forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = `${item.tanggal}: ${item.keterangan} - ${item.catatan}`;
+        kegiatanListEl.appendChild(li);
+      });
+
+      monthYearEl.textContent = `${getMonthName(month)} ${year}`;
+    }
+
+    function getMonthName(m) {
+      const nama = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      return nama[m];
+    }
+
+    function changeYear() {
+      selectedYear = parseInt(yearSelectEl.value);
+      renderCalendar(currentMonth, selectedYear);
+    }
+
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        selectedYear--;
+        yearSelectEl.value = selectedYear;
+      }
+      renderCalendar(currentMonth, selectedYear);
+    }
+
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        selectedYear++;
+        yearSelectEl.value = selectedYear;
+      }
+      renderCalendar(currentMonth, selectedYear);
+    }
+
+    function openModal(dateKey) {
+      selectedDate = dateKey;
+      document.getElementById("modal").classList.remove("hidden");
+      document.getElementById("selected-date").textContent = dateKey;
+      const data = kalenderData[dateKey] || {};
+      document.getElementById("keterangan").value = data.keterangan || "aktif";
+      document.getElementById("catatan").value = data.catatan || "";
+    }
+
+    function closeModal() {
+      document.getElementById("modal").classList.add("hidden");
+    }
+
+    function saveKeterangan() {
+      const ket = document.getElementById("keterangan").value;
+      const cat = document.getElementById("catatan").value;
+      kalenderData[selectedDate] = { keterangan: ket, catatan: cat };
+      localStorage.setItem("kalenderData", JSON.stringify(kalenderData));
+      renderCalendar(currentMonth, selectedYear);
+      closeModal();
+    }
+
+    function hapusKeterangan() {
+      delete kalenderData[selectedDate];
+      localStorage.setItem("kalenderData", JSON.stringify(kalenderData));
+      renderCalendar(currentMonth, selectedYear);
+      closeModal();
+    }
+
+    function resetKalender() {
+      if (confirm("Apakah Anda yakin ingin menghapus semua data kalender?")) {
+        kalenderData = {};
+        localStorage.removeItem("kalenderData");
+        renderCalendar(currentMonth, selectedYear);
+      }
+    }
+/*
+function exportToWord() {
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
+
+  const doc = new Document({
+    sections: [
+      {
+        children: getCalendarsForExport(currentMonth, selectedYear)
+      }
+    ]
+  });
+
+  Packer.toBlob(doc).then(blob => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `kalender_${getMonthName(currentMonth)}_${selectedYear}.docx`;
+    a.click();
+  });
+}
+*/
+function exportToWord() {
+  const { Document, Packer, Paragraph } = window.docx;
+  const bulanSelect = document.getElementById("bulanSelect");
+  const selectedMonths = Array.from(bulanSelect.selectedOptions).map(opt => parseInt(opt.value));
+
+  if (selectedMonths.length === 0) {
+    alert("Silakan pilih minimal satu bulan untuk diekspor.");
+    return;
+  }
+
+  const children = [];
+  selectedMonths.forEach(month => {
+    const sectionContent = getCalendarsForExport(month, selectedYear);
+    children.push(...sectionContent);
+    children.push(new Paragraph(" ")); // spasi antar bulan
+    children.push(new Paragraph(" ")); 
+  });
+
+  const doc = new Document({
+    sections: [{ children }]
+  });
+
+  Packer.toBlob(doc).then(blob => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `kalender_${selectedYear}.docx`;
+    a.click();
+  });
+}
+
+function getCalendarsForExport(month, year) {
+  const { Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
+
+  const children = [];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Judul Bulan
+  children.push(new Paragraph({
+    children: [new TextRun({ text: `${getMonthName(month)} ${year}`, bold: true, size: 28 })],
+    spacing: { after: 200 }
+  }));
+
+  // Header hari
+  const headers = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const headerRow = new TableRow({
+    children: headers.map(h => new TableCell({
+      children: [new Paragraph({ text: h, bold: true })]
+    }))
+  });
+
+  const rows = [headerRow];
+  let currentRow = [];
+
+  // Kosongkan awal jika bukan hari Minggu
+  for (let i = 0; i < firstDay; i++) {
+    currentRow.push(new TableCell({ children: [new Paragraph("")] }));
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = `${year}-${month + 1}-${day}`;
+    const data = kalenderData[dateKey];
+    let cellText = day.toString();
+
+    if (data?.keterangan) {
+      cellText += ` (${data.keterangan})`;
+    }
+
+    currentRow.push(new TableCell({
+      children: [new Paragraph(cellText)]
+    }));
+
+    if (currentRow.length === 7) {
+      rows.push(new TableRow({ children: currentRow }));
+      currentRow = [];
+    }
+  }
+
+  if (currentRow.length > 0) {
+    while (currentRow.length < 7) currentRow.push(new TableCell({ children: [new Paragraph("")] }));
+    rows.push(new TableRow({ children: currentRow }));
+  }
+
+  // Tambahkan tabel bulan
+  children.push(new Table({ rows }));
+
+  // Tambahkan keterangan warna di bawah
+  children.push(new Paragraph(" "));
+  children.push(new Paragraph({ children: [new TextRun({ text: "Keterangan Warna Kotak:", bold: true })] }));
+  children.push(new Paragraph("- Hijau: Hari Aktif"));
+  children.push(new Paragraph("- Merah: Hari Libur"));
+  children.push(new Paragraph("- Biru: Kegiatan Sekolah"));
+
+  // Tambahkan catatan tambahan per tanggal
+  const bulanData = Object.entries(kalenderData)
+    .filter(([key]) => key.startsWith(`${year}-${month + 1}-`))
+    .map(([key, value]) => {
+      const day = key.split("-")[2];
+      return new Paragraph(`${parseInt(day)}: ${value.keterangan} - ${value.catatan}`);
+    });
+
+  if (bulanData.length > 0) {
+    children.push(new Paragraph(" "));
+    children.push(new Paragraph({ children: [new TextRun({ text: "Catatan Kegiatan:", bold: true })] }));
+    children.push(...bulanData);
+  }
+
+  return children;
+}
+    renderCalendar(currentMonth, selectedYear);
+  </script>
+</body>
+</html>
