@@ -306,7 +306,8 @@ function getCalendarsForExport(month, year) {
   const headers = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   const headerRow = new TableRow({
     children: headers.map(h => new TableCell({
-      children: [new Paragraph({ text: h, bold: true })]
+      children: [new Paragraph({ text: h, bold: true })],
+      shading: { fill: "4CAF50" } // Warna hijau untuk header
     }))
   });
 
@@ -322,13 +323,21 @@ function getCalendarsForExport(month, year) {
     const dateKey = `${year}-${month + 1}-${day}`;
     const data = kalenderData[dateKey];
     let cellText = day.toString();
+    let cellColor = "";
 
     if (data?.keterangan) {
       cellText += ` (${data.keterangan})`;
+      // Tentukan warna berdasarkan keterangan
+      switch(data.keterangan) {
+        case "aktif": cellColor = "D0F0D0"; break; // Hijau muda
+        case "libur": cellColor = "F8D0D0"; break; // Merah muda
+        case "kegiatan": cellColor = "D0E0F8"; break; // Biru muda
+      }
     }
 
     currentRow.push(new TableCell({
-      children: [new Paragraph(cellText)]
+      children: [new Paragraph(cellText)],
+      shading: cellColor ? { fill: cellColor } : undefined
     }));
 
     if (currentRow.length === 7) {
@@ -341,7 +350,6 @@ function getCalendarsForExport(month, year) {
     while (currentRow.length < 7) currentRow.push(new TableCell({ children: [new Paragraph("")] }));
     rows.push(new TableRow({ children: currentRow }));
   }
-
   // Tambahkan tabel bulan
   children.push(new Table({ rows }));
 
