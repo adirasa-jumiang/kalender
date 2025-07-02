@@ -404,11 +404,11 @@ function getCalendarsForExport(month, year) {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = `${year}-${month + 1}-${day}`;
     const data = kalenderData[dateKey];
-    let cellText = day.toString();
+    //let cellText = day.toString();
     let cellColor = "";
 
     if (data?.keterangan) {
-      cellText += ` (${data.keterangan})`;
+      //cellText += ` (${data.keterangan})`;
       // Tentukan warna berdasarkan keterangan
       switch(data.keterangan) {
         case "aktif": cellColor = "D0F0D0"; break; // Hijau muda
@@ -418,7 +418,8 @@ function getCalendarsForExport(month, year) {
     }
 
     currentRow.push(new TableCell({
-      children: [new Paragraph(cellText)],
+      children: [new Paragraph(day.toString())], //Hanya tampilkan angka
+      //children: [new Paragraph(cellText)],
       shading: cellColor ? { fill: cellColor } : undefined
     }));
 
