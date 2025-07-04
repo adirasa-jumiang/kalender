@@ -124,9 +124,50 @@
       padding: 5px 10px;
       border-radius: 5px;
     }
+
+/* Gaya pop-up */
+#popup-banner {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  background: white;
+  border: 2px solid #007BFF;
+  border-radius: 10px;
+  z-index: 9999;
+  text-align: center;
+  padding: 15px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  animation: fadeIn 0.5s ease;
+}
+#popup-banner img {
+  max-width: 100%;
+  border-radius: 5px;
+}
+#popup-banner .close-btn {
+  margin-top: 10px;
+  background: #dc3545;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -60%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
   </style>
 </head>
 <body>
+<div id="popup-banner">
+  <img src="https://github.com/BoyMohlis/engoffline/blob/4616662d0725f7efd77ec779f137b1d4b6466d60/img/adirasa.PNG?raw=true" alt="Sponsor" />
+  <p><strong>Dukung Kami!</strong><br />Klik banner ini untuk info sponsor.</p>
+  <button class="close-btn" onclick="closePopup()">Tutup</button>
+</div>
+  
   <div class="menu-btn" onclick="toggleSidebar()">☰</div>
 
   <div class="sidebar" id="sidebar">
@@ -558,7 +599,23 @@ if (Object.keys(kegiatanGroups).length > 0) {
       sidebar.classList.toggle("open");
       overlay.classList.toggle("active");
     }
-
   </script>
+
+<script>
+function showPopup() {
+  // Ganti URL sesuai halaman target kamu
+  var targetURL = "/2019/07/visi-misi-ra-adirasa.html"; // contoh: /p/promosi.html
+  if (window.location.pathname === targetURL) {
+    document.getElementById("popup-banner").style.display = "block";
+  }
+}
+
+function closePopup() {
+  document.getElementById("popup-banner").style.display = "none";
+}
+
+// Tunggu halaman selesai load
+window.onload = showPopup;
+</script>
 </body>
 </html>
