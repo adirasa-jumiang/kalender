@@ -21,11 +21,22 @@
       padding: 5px;
       min-height: 60px;
       text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
     }
     .day-header {
       font-weight: bold;
-      background-color: #4caf50;
+      /* background-color: #4caf50; */
+      background-image: linear-gradient(to bottom, #4caf50, #023639);
       color: white;
+    }
+    .day-box:hover {
+        color: #f55;
+        font-weight: bold;
+        border: 2px solid;
+        border-color: #4CAF50;
+        transform: translateY(-5px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.15);
     }
     .day-box.aktif {
       background-color: #d0f0d0;
@@ -95,7 +106,9 @@
     }
 
     .sidebar a:hover {
-      color: #fff;
+      /* color: #fff; */
+      color: #9cf808;
+      padding-left: 10px;
     }
 
     /* Overlay (untuk HP) */
@@ -124,6 +137,9 @@
       background: #fff;
       padding: 5px 10px;
       border-radius: 5px;
+    }
+    .menu-btn:hover {
+      border: #9cf808 solid 2px;
     }
 
   </style>
@@ -563,4 +579,5 @@ if (Object.keys(kegiatanGroups).length > 0) {
   </script>
 </body>
 </html>
+
 
